@@ -48,7 +48,6 @@ def LOG(message=None, type=None):
     if VERBOSITY <= 0:
         return
     elif VERBOSITY == 1:
-        #       minimal verbosity ...   dot style output
         if type in MSGSCHEME_MIN:
             message = MSGSCHEME_MIN[type]
             stdout.write("%s" % message)
@@ -87,13 +86,11 @@ def randomMAC():
 def toNum(ip):
     return struct.unpack('L', socket.inet_aton(ip))[0]
 
-
 def get_if_net(iff):
     for net, msk, gw, iface, addr in read_routes():
         if (iff == iface and net != 0L):
             return ltoa(net)
     warning("No net address found for iface %s\n" % iff)
-
 
 def get_if_msk(iff):
     for net, msk, gw, iface, addr in read_routes():
@@ -101,13 +98,11 @@ def get_if_msk(iff):
             return ltoa(msk)
     warning("No net address found for iface %s\n" % iff)
 
-
 def get_if_ip(iff):
     for net, msk, gw, iface, addr in read_routes():
         if (iff == iface and net != 0L):
             return addr
     warning("No net address found for iface %s\n" % iff)
-
 
 def calcCIDR(mask):
     mask = mask.split('.')
@@ -120,7 +115,6 @@ def calcCIDR(mask):
         if c == '1': cidr += 1
     return str(cidr)
 
-
 def unpackMAC(binmac):
     mac = binascii.hexlify(binmac)[0:12]
     blocks = [mac[x:x + 2] for x in xrange(0, len(mac), 2)]
@@ -128,7 +122,6 @@ def unpackMAC(binmac):
 
 def sendPacket(pkt):
     sendp(pkt, iface=conf.iface)
-
 
 def neighbors():
     global dhcpsip, subnet, nodes
@@ -145,8 +138,7 @@ def neighbors():
             arp_request = Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=ip, psrc=myip)
             sendPacket(arp_request)
             time.sleep(0.005)
-
-
+            
 def release():
     global dhcpsmac, dhcpsip, nodes, p_dhcp_advertise
     LOG(type="NOTICE", message="***  Sending DHCPRELEASE for neighbors ")
@@ -171,7 +163,6 @@ class send_dhcp(threading.Thread):
             myxid = random.randint(1, 900000000)
             mymac = get_if_hwaddr(conf.iface)
             hostname =  ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(8))
-            # Mac OS options order to avoid DHCP fingerprinting
             myoptions = [
                 ("message-type", "discover"),
                 ("param_req_list", chr(1), chr(121), chr(3), chr(6), chr(15), chr(119), chr(252), chr(95), chr(44),
@@ -188,7 +179,6 @@ class send_dhcp(threading.Thread):
             sendPacket(dhcp_discover)
             if TIMEOUT['timer'] > 0:
                 time.sleep(TIMEOUT['timer'])
-
 
 class sniff_dhcp(threading.Thread):
     def __init__(self):
@@ -265,16 +255,6 @@ def main():
         t = send_dhcp()
         t.start()
         THREAD_POOL.append(t)
-
-    fail_cnt = 20
-    while fail_cnt > 0:
-        time.sleep(TIMEOUT['dhcpip'])
-        LOG(type="?", message="\t\twaiting for first DHCP Server response")
-        fail_cnt -= 1
-
-    if fail_cnt == 0:
-        LOG(type="NOTICE", message="[FAIL] No DHCP offers detected - aborting")
-        signal_handler(signal.SIGINT, fail_cnt)
 
 if __name__ == '__main__':
     main()
